@@ -16,27 +16,33 @@ const generateToken = (user) => {
 // ✅ Register
 export const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { password, email } = req.body;
 
     const exists = await User.findOne({ where: { email } });
+
     if (exists) {
-      return res.status(400).json({ message: "Email already exists" });
+      return res.status(400).json({
+        message: "Email already exists",
+      });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
+    // hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create(
-     req.body
-      // role default = student
-      // isVerified default = false
-    );
+    // create user
+    const user = await User.create({
+      ...req.body,
+      password: hashedPassword,
+    });
 
     res.status(201).json({
       message: "User registered successfully",
       user,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({
+      error: err.message,
+    });
   }
 };
 
@@ -66,10 +72,12 @@ export const login = async (req, res) => {
 
     res.json({
       message: "Login successful",
+     role:user.role,
+     email:user.email,
       token: `Bearer ${token}`,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 };
 
@@ -95,7 +103,7 @@ export const changePassword = async (req, res) => {
 
     res.json({ message: "Password updated successfully" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 };
 
@@ -117,7 +125,7 @@ export const forgotPassword = async (req, res) => {
 
     res.json({ message: "Password reset successful" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 };
 
@@ -137,6 +145,6 @@ export const verifyUser = async (req, res) => {
 
     res.json({ message: "User verified successfully" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 };
