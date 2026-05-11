@@ -601,3 +601,301 @@ export const getMasterById = catchAsync(async (req, res) => {
 
 });
 
+
+
+export const softDeleteMasters = catchAsync(async (req, res) => {
+  const {
+    type,
+
+    categoryId,
+    subCategoryId,
+    courseId,
+    moduleId,
+    chapterId,
+    topicId,
+    questionId,
+  } = req.body;
+
+  // ======================================================
+  // VALIDATION
+  // ======================================================
+
+  if (!type) {
+    return res.status(400).json({
+      success: false,
+      message: "Type is required",
+    });
+  }
+
+  // ======================================================
+  // CATEGORY DELETE
+  // ======================================================
+
+  if (type === "CATEGORY") {
+    if (!categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: "categoryId is required",
+      });
+    }
+
+    await Category.update(
+      { deleted: true },
+      { where: { id: categoryId } }
+    );
+
+    await SubCategory.update(
+      { deleted: true },
+      { where: { categoryId } }
+    );
+
+    await Course.update(
+      { deleted: true },
+      { where: { categoryId } }
+    );
+
+    await Module.update(
+      { deleted: true },
+      { where: { categoryId } }
+    );
+
+    await Chapter.update(
+      { deleted: true },
+      { where: { categoryId } }
+    );
+
+    await Topic.update(
+      { deleted: true },
+      { where: { categoryId } }
+    );
+
+    await Question.update(
+      { deleted: true },
+      { where: { categoryId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Category and all related data soft deleted successfully",
+    });
+  }
+
+  // ======================================================
+  // SUB CATEGORY DELETE
+  // ======================================================
+
+  if (type === "SUB_CATEGORY") {
+    if (!subCategoryId) {
+      return res.status(400).json({
+        success: false,
+        message: "subCategoryId is required",
+      });
+    }
+
+    await SubCategory.update(
+      { deleted: true },
+      { where: { id: subCategoryId } }
+    );
+
+    await Course.update(
+      { deleted: true },
+      { where: { subCategoryId } }
+    );
+
+    await Module.update(
+      { deleted: true },
+      { where: { subCategoryId } }
+    );
+
+    await Chapter.update(
+      { deleted: true },
+      { where: { subCategoryId } }
+    );
+
+    await Topic.update(
+      { deleted: true },
+      { where: { subCategoryId } }
+    );
+
+    await Question.update(
+      { deleted: true },
+      { where: { subCategoryId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "SubCategory and related data soft deleted successfully",
+    });
+  }
+
+  // ======================================================
+  // COURSE DELETE
+  // ======================================================
+
+  if (type === "COURSE") {
+    if (!courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "courseId is required",
+      });
+    }
+
+    await Course.update(
+      { deleted: true },
+      { where: { id: courseId } }
+    );
+
+    await Module.update(
+      { deleted: true },
+      { where: { courseId } }
+    );
+
+    await Chapter.update(
+      { deleted: true },
+      { where: { courseId } }
+    );
+
+    await Topic.update(
+      { deleted: true },
+      { where: { courseId } }
+    );
+
+    await Question.update(
+      { deleted: true },
+      { where: { courseId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Course and related data soft deleted successfully",
+    });
+  }
+
+  // ======================================================
+  // MODULE DELETE
+  // ======================================================
+
+  if (type === "MODULE") {
+    if (!moduleId) {
+      return res.status(400).json({
+        success: false,
+        message: "moduleId is required",
+      });
+    }
+
+    await Module.update(
+      { deleted: true },
+      { where: { id: moduleId } }
+    );
+
+    await Chapter.update(
+      { deleted: true },
+      { where: { moduleId } }
+    );
+
+    await Topic.update(
+      { deleted: true },
+      { where: { moduleId } }
+    );
+
+    await Question.update(
+      { deleted: true },
+      { where: { moduleId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Module and related data soft deleted successfully",
+    });
+  }
+
+  // ======================================================
+  // CHAPTER DELETE
+  // ======================================================
+
+  if (type === "CHAPTER") {
+    if (!chapterId) {
+      return res.status(400).json({
+        success: false,
+        message: "chapterId is required",
+      });
+    }
+
+    await Chapter.update(
+      { deleted: true },
+      { where: { id: chapterId } }
+    );
+
+    await Topic.update(
+      { deleted: true },
+      { where: { chapterId } }
+    );
+
+    await Question.update(
+      { deleted: true },
+      { where: { chapterId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Chapter and related data soft deleted successfully",
+    });
+  }
+
+  // ======================================================
+  // TOPIC DELETE
+  // ======================================================
+
+  if (type === "TOPIC") {
+    if (!topicId) {
+      return res.status(400).json({
+        success: false,
+        message: "topicId is required",
+      });
+    }
+
+    await Topic.update(
+      { deleted: true },
+      { where: { id: topicId } }
+    );
+
+    await Question.update(
+      { deleted: true },
+      { where: { topicId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Topic and related data soft deleted successfully",
+    });
+  }
+
+  // ======================================================
+  // QUESTION DELETE
+  // ======================================================
+
+  if (type === "QUESTION") {
+    if (!questionId) {
+      return res.status(400).json({
+        success: false,
+        message: "questionId is required",
+      });
+    }
+
+    await Question.update(
+      { deleted: true },
+      { where: { id: questionId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Question soft deleted successfully",
+    });
+  }
+
+  return res.status(400).json({
+    success: false,
+    message: "Invalid type",
+  });
+});
+

@@ -5,6 +5,8 @@ import {
   changePassword,
   forgotPassword,
   verifyUser,
+  getUserById,
+  updateUser
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -18,5 +20,10 @@ router.post("/verify", verifyUser);
 
 // Protected route
 router.post("/change-password", protect, changePassword);
+
+
+router.get("/user/:id", getUserById);
+
+router.put("/edit/:id", updateUser);
 
 export default router;

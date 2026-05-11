@@ -13,6 +13,7 @@ router.get("/masters", courseController.getAllMasters);
 
 
 router.get("/master/:type/:id", courseController.getMasterById);
+router.delete("/softDelete", courseController.softDeleteMasters);
 
 
 export default router;

@@ -1,7 +1,7 @@
 import db from "../models/index.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-
+import {catchAsync} from "../utils/catchAsync.js";
 const User = db.User;
 
 // 🔐 Generate Token (90 days)
@@ -148,3 +148,97 @@ export const verifyUser = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+
+
+// ======================================================
+// GET USER BY ID
+// ======================================================
+
+export const getUserById = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const user = await User.findOne({
+    where: {
+      id,
+      isDeleted: false,
+    },
+
+    attributes: {
+      exclude: ["password"],
+    },
+  });
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: user,
+  });
+});
+
+export const updateUser = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  // ======================================================
+  // CHECK USER
+  // ======================================================
+
+  const user = await User.findOne({
+    where: {
+      id,
+      isDeleted: false,
+    },
+  });
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  // ======================================================
+  // EMAIL CHECK
+  // ======================================================
+
+  if (req.body.email) {
+    const existingEmail = await User.findOne({
+      where: {
+        email: req.body.email,
+        id: {
+          [Op.ne]: id,
+        },
+      },
+    });
+
+    if (existingEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
+  }
+
+  // ======================================================
+  // UPDATE ONLY SENT FIELDS
+  // ======================================================
+
+  const updatedData = {
+    ...req.body,
+    updatedBy: req.user?.id || null,
+  };
+
+  await user.update(updatedData);
+
+  return res.status(200).json({
+    success: true,
+    message: "User updated successfully",
+    data: user,
+  });
+});
