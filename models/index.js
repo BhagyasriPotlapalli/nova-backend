@@ -57,6 +57,11 @@ const {
   Chapter,
   Topic,
   Question,
+  User,
+  CourseSubscription,
+  Assignment,
+  AssignmentQuestion,
+  StudentAnswer
 } = db;
 
 // Category → SubCategory
@@ -137,6 +142,107 @@ if (Topic && Question) {
   });
 }
 
+// models/index.js relations
+
+// =====================================================
+// COURSE SUBSCRIPTION
+// =====================================================
+
+User.hasMany(CourseSubscription, {
+  foreignKey: "userId",
+  as: "subscriptions",
+});
+
+CourseSubscription.belongsTo(User, {
+  foreignKey: "userId",
+  as: "student",
+});
+
+Course.hasMany(CourseSubscription, {
+  foreignKey: "courseId",
+  as: "subscriptions",
+});
+
+CourseSubscription.belongsTo(Course, {
+  foreignKey: "courseId",
+  as: "course",
+});
+
+// =====================================================
+// ASSIGNMENT
+// =====================================================
+
+Course.hasMany(Assignment, {
+  foreignKey: "courseId",
+  as: "assignments",
+});
+
+Assignment.belongsTo(Course, {
+  foreignKey: "courseId",
+  as: "course",
+});
+
+Topic.hasMany(Assignment, {
+  foreignKey: "topicId",
+  as: "assignments",
+});
+
+Assignment.belongsTo(Topic, {
+  foreignKey: "topicId",
+  as: "topic",
+});
+
+// =====================================================
+// ASSIGNMENT QUESTIONS
+// =====================================================
+
+Assignment.belongsToMany(Question, {
+  through: AssignmentQuestion,
+  foreignKey: "assignmentId",
+  otherKey: "questionId",
+  as: "questions",
+});
+
+Question.belongsToMany(Assignment, {
+  through: AssignmentQuestion,
+  foreignKey: "questionId",
+  otherKey: "assignmentId",
+  as: "assignments",
+});
+
+// =====================================================
+// STUDENT ANSWERS
+// =====================================================
+
+User.hasMany(StudentAnswer, {
+  foreignKey: "userId",
+  as: "studentAnswers",
+});
+
+StudentAnswer.belongsTo(User, {
+  foreignKey: "userId",
+  as: "student",
+});
+
+Assignment.hasMany(StudentAnswer, {
+  foreignKey: "assignmentId",
+  as: "answers",
+});
+
+StudentAnswer.belongsTo(Assignment, {
+  foreignKey: "assignmentId",
+  as: "assignment",
+});
+
+Question.hasMany(StudentAnswer, {
+  foreignKey: "questionId",
+  as: "answers",
+});
+
+StudentAnswer.belongsTo(Question, {
+  foreignKey: "questionId",
+  as: "question",
+});
 // 👇 EXISTING associate FUNCTION SUPPORT
 Object.keys(db).forEach((modelName) => {
   if (db[modelName].associate) {

@@ -7,6 +7,7 @@ const router = express.Router();
 // Public routes
 router.post("/register",protect, courseController.createMaster);
 router.get("/allCategories",protect, courseController.getAllCategories);
+router.get("/categories", courseController.getAllCategories);
 router.put("/master/:type/:id", courseController.updateMaster);
 
 router.get("/masters", courseController.getAllMasters);
