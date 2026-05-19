@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import {catchAsync} from "../utils/catchAsync.js";
 const User = db.User;
-
+import { Op } from "sequelize";
 // 🔐 Generate Token (90 days)
 const generateToken = (user) => {
   return jwt.sign(

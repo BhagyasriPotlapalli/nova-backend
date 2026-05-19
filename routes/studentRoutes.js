@@ -58,4 +58,45 @@ router.get(
   studentController.getStudentResults
 );
 
+router.post(
+  "/assignmentQuestion",
+  studentController.createAssignmentQuestions
+);
+
+// =====================================================
+// GET ALL
+// =====================================================
+
+router.get(
+  "/assignmentQuestions",
+  studentController.getAllAssignmentQuestions
+);
+
+// =====================================================
+// GET BY ID
+// =====================================================
+
+router.get(
+  "/assignmentQuestion/:id",
+  studentController.getAssignmentQuestionById
+);
+
+// =====================================================
+// UPDATE
+// =====================================================
+
+router.put(
+  "/assignmentQuestion/:id",
+  studentController.updateAssignmentQuestion
+);
+
+// =====================================================
+// DELETE
+// =====================================================
+
+router.delete(
+  "/assignmentQuestion/:id",
+  studentController.deleteAssignmentQuestion
+);
+
 export default router;

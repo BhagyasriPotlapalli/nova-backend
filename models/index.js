@@ -243,6 +243,29 @@ StudentAnswer.belongsTo(Question, {
   foreignKey: "questionId",
   as: "question",
 });
+// =====================================================
+// ASSIGNMENT QUESTION RELATIONS
+// =====================================================
+
+AssignmentQuestion.belongsTo(Assignment, {
+  foreignKey: "assignmentId",
+  as: "assignment",
+});
+
+Assignment.hasMany(AssignmentQuestion, {
+  foreignKey: "assignmentId",
+  as: "assignmentQuestions",
+});
+
+AssignmentQuestion.belongsTo(Question, {
+  foreignKey: "questionId",
+  as: "question",
+});
+
+Question.hasMany(AssignmentQuestion, {
+  foreignKey: "questionId",
+  as: "assignmentQuestions",
+});
 // 👇 EXISTING associate FUNCTION SUPPORT
 Object.keys(db).forEach((modelName) => {
   if (db[modelName].associate) {

@@ -460,3 +460,272 @@ export const getStudentResults = catchAsync(async (req, res) => {
   });
 
 });
+
+export const createAssignmentQuestions = catchAsync(
+  async (req, res) => {
+
+    const {
+      assignmentId,
+      questionIds,
+    } = req.body;
+
+    // =====================================================
+    // CHECK ASSIGNMENT
+    // =====================================================
+
+    const assignment = await Assignment.findByPk(
+      assignmentId
+    );
+
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        message: "Assignment not found",
+      });
+    }
+
+    // =====================================================
+    // VALIDATE QUESTIONS ARRAY
+    // =====================================================
+
+    if (
+      !Array.isArray(questionIds) ||
+      questionIds.length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "questionIds array is required",
+      });
+    }
+
+    // =====================================================
+    // CHECK QUESTIONS EXIST
+    // =====================================================
+
+    const questions = await Question.findAll({
+      where: {
+        id: questionIds,
+      },
+    });
+
+    if (questions.length !== questionIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Some questions not found",
+      });
+    }
+
+    // =====================================================
+    // PREPARE DATA
+    // =====================================================
+
+    const formattedData = questionIds.map(
+      (questionId) => ({
+        assignmentId,
+        questionId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+
+    // =====================================================
+    // INSERT
+    // =====================================================
+
+    const response =
+      await AssignmentQuestion.bulkCreate(
+        formattedData
+      );
+
+    // =====================================================
+    // UPDATE TOTAL QUESTIONS
+    // =====================================================
+
+    await assignment.update({
+      totalQuestions: questionIds.length,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Assignment questions added successfully",
+      data: response,
+    });
+
+  }
+);
+
+// =====================================================
+// GET ALL ASSIGNMENT QUESTIONS
+// =====================================================
+
+export const getAllAssignmentQuestions =
+  catchAsync(async (req, res) => {
+
+    const {
+      assignmentId,
+      questionId,
+    } = req.query;
+
+    let whereCondition = {};
+
+    if (assignmentId) {
+      whereCondition.assignmentId =
+        assignmentId;
+    }
+
+    if (questionId) {
+      whereCondition.questionId =
+        questionId;
+    }
+
+    const response =
+      await AssignmentQuestion.findAll({
+
+        where: whereCondition,
+
+        include: [
+
+          {
+            model: Assignment,
+            as: "assignment",
+
+            attributes: [
+              "id",
+              "title",
+            ],
+          },
+
+          {
+            model: Question,
+            as: "question",
+
+            attributes: [
+              "id",
+              "question",
+              "optionA",
+              "optionB",
+              "optionC",
+              "optionD",
+            //   "correctAnswer",
+              "marks",
+            ],
+          },
+
+        ],
+
+        order: [["id", "DESC"]],
+
+      });
+
+    return res.status(200).json({
+      success: true,
+      count: response.length,
+      data: response,
+    });
+
+  });
+
+// =====================================================
+// GET ASSIGNMENT QUESTION BY ID
+// =====================================================
+
+export const getAssignmentQuestionById =
+  catchAsync(async (req, res) => {
+
+    const { id } = req.params;
+
+    const response =
+      await AssignmentQuestion.findByPk(id, {
+
+        include: [
+
+          {
+            model: Assignment,
+            as: "assignment",
+          },
+
+          {
+            model: Question,
+            as: "question",
+          },
+
+        ],
+
+      });
+
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Assignment Question not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: response,
+    });
+
+  });
+
+// =====================================================
+// UPDATE ASSIGNMENT QUESTION
+// =====================================================
+
+export const updateAssignmentQuestion =
+  catchAsync(async (req, res) => {
+
+    const { id } = req.params;
+
+    const assignmentQuestion =
+      await AssignmentQuestion.findByPk(id);
+
+    if (!assignmentQuestion) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Assignment Question not found",
+      });
+    }
+
+    await assignmentQuestion.update(req.body);
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Assignment Question updated successfully",
+      data: assignmentQuestion,
+    });
+
+  });
+
+// =====================================================
+// DELETE ASSIGNMENT QUESTION
+// =====================================================
+
+export const deleteAssignmentQuestion =
+  catchAsync(async (req, res) => {
+
+    const { id } = req.params;
+
+    const assignmentQuestion =
+      await AssignmentQuestion.findByPk(id);
+
+    if (!assignmentQuestion) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Assignment Question not found",
+      });
+    }
+
+    await assignmentQuestion.destroy();
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Assignment Question deleted successfully",
+    });
+
+  });
