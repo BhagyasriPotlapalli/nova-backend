@@ -295,13 +295,13 @@ userId: {
 
   async down(queryInterface, Sequelize) {
 
-    await queryInterface.dropTable("StudentAnswers");
+    // await queryInterface.dropTable("StudentAnswers");
 
-    await queryInterface.dropTable("AssignmentQuestions");
+    // await queryInterface.dropTable("AssignmentQuestions");
 
-    await queryInterface.dropTable("Assignments");
+    // await queryInterface.dropTable("Assignments");
 
-    await queryInterface.dropTable("CourseSubscriptions");
+    // await queryInterface.dropTable("CourseSubscriptions");
 
   },
 };

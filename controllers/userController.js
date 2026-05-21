@@ -33,6 +33,7 @@ export const register = async (req, res) => {
     const user = await User.create({
       ...req.body,
       password: hashedPassword,
+      isVerified:true,
     });
 
     res.status(201).json({
@@ -72,6 +73,7 @@ export const login = async (req, res) => {
 
     res.json({
       message: "Login successful",
+      userId:user.id,
      role:user.role,
      email:user.email,
       token: `Bearer ${token}`,

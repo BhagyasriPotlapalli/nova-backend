@@ -1,7 +1,7 @@
 import {catchAsync} from "../utils/catchAsync.js";
 import { Op } from "sequelize";
 
-
+import {uploadToBunny} from "../utils/bunnyStorage.js"
 import db from "../models/index.js";
 const User = db.User;
 const Category=db.Category;
@@ -154,62 +154,217 @@ export const createMaster = catchAsync(async (req, res) => {
   // TOPIC
   // =====================================================
 
+  // else if (type === "TOPIC") {
+
+  //   const existingTopic = await Topic.findOne({
+  //     where: {
+  //       title: payload.title,
+  //       chapterId: payload.chapterId,
+  //       deleted: false,
+  //     },
+  //   });
+
+  //   if (existingTopic) {
+  //     return res.status(400).json({
+  //       success: false,
+  //       message: "Topic already exists",
+  //     });
+  //   }
+
+  //   response = await Topic.create(payload);
+
+  // }
   else if (type === "TOPIC") {
 
-    const existingTopic = await Topic.findOne({
-      where: {
-        title: payload.title,
-        chapterId: payload.chapterId,
-        deleted: false,
-      },
+  const existingTopic = await Topic.findOne({
+    where: {
+      title: payload.title,
+      chapterId: payload.chapterId,
+      deleted: false,
+    },
+  });
+
+  if (existingTopic) {
+    return res.status(400).json({
+      success: false,
+      message: "Topic already exists",
     });
-
-    if (existingTopic) {
-      return res.status(400).json({
-        success: false,
-        message: "Topic already exists",
-      });
-    }
-
-    response = await Topic.create(payload);
-
   }
+
+  // =========================================
+  // VIDEO UPLOAD
+  // =========================================
+
+  if (req.files?.video?.[0]) {
+
+    const uploadedVideo = await uploadToBunny(
+      req.files.video[0],
+      "topics/videos"
+    );
+
+    payload.videoUrl = uploadedVideo.filePath;
+  }
+
+  // =========================================
+  // PDF UPLOAD
+  // =========================================
+
+  if (req.files?.pdf?.[0]) {
+
+    const uploadedPdf = await uploadToBunny(
+      req.files.pdf[0],
+      "topics/pdfs"
+    );
+
+    payload.pdfUrl = uploadedPdf.filePath;
+  }
+
+  response = await Topic.create(payload);
+
+}
 
   // =====================================================
   // QUESTION
   // =====================================================
 
+  // else if (type === "QUESTION") {
+
+  //   if (!Array.isArray(questions) || questions.length === 0) {
+
+  //     return res.status(400).json({
+  //       success: false,
+  //       message: "questions array is required",
+  //     });
+
+  //   }
+
+  //   const formattedQuestions = questions.map((item) => ({
+  //     ...item,
+
+  //     categoryId: payload.categoryId,
+  //     subCategoryId: payload.subCategoryId,
+  //     courseId: payload.courseId,
+  //     moduleId: payload.moduleId,
+  //     chapterId: payload.chapterId,
+  //     topicId: payload.topicId,
+
+  //     createdBy: req.user?.id,
+  //     updatedBy: req.user?.id,
+
+  //     createdAt: new Date(),
+  //     updatedAt: new Date(),
+  //   }));
+
+  //   response = await Question.bulkCreate(formattedQuestions);
+
+  // }
   else if (type === "QUESTION") {
 
-    if (!Array.isArray(questions) || questions.length === 0) {
+  if (!Array.isArray(questions) || questions.length === 0) {
 
-      return res.status(400).json({
-        success: false,
-        message: "questions array is required",
-      });
-
-    }
-
-    const formattedQuestions = questions.map((item) => ({
-      ...item,
-
-      categoryId: payload.categoryId,
-      subCategoryId: payload.subCategoryId,
-      courseId: payload.courseId,
-      moduleId: payload.moduleId,
-      chapterId: payload.chapterId,
-      topicId: payload.topicId,
-
-      createdBy: req.user?.id,
-      updatedBy: req.user?.id,
-
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
-
-    response = await Question.bulkCreate(formattedQuestions);
+    return res.status(400).json({
+      success: false,
+      message: "questions array is required",
+    });
 
   }
+
+  const formattedQuestions = await Promise.all(
+
+    questions.map(async (item, index) => {
+
+      // =========================================
+      // IMAGE OPTION TYPE
+      // =========================================
+
+      if (item.type === "Image") {
+
+        // OPTION A
+        const optionAFile = req.files?.find(
+          (f) => f.fieldname === `optionA_${index}`
+        );
+
+        if (optionAFile) {
+
+          const uploaded = await uploadToBunny(
+            optionAFile,
+            "questions/options"
+          );
+
+          item.optionA = uploaded.url;
+        }
+
+        // OPTION B
+        const optionBFile = req.files?.find(
+          (f) => f.fieldname === `optionB_${index}`
+        );
+
+        if (optionBFile) {
+
+          const uploaded = await uploadToBunny(
+            optionBFile,
+            "questions/options"
+          );
+
+          item.optionB = uploaded.url;
+        }
+
+        // OPTION C
+        const optionCFile = req.files?.find(
+          (f) => f.fieldname === `optionC_${index}`
+        );
+
+        if (optionCFile) {
+
+          const uploaded = await uploadToBunny(
+            optionCFile,
+            "questions/options"
+          );
+
+          item.optionC = uploaded.url;
+        }
+
+        // OPTION D
+        const optionDFile = req.files?.find(
+          (f) => f.fieldname === `optionD_${index}`
+        );
+
+        if (optionDFile) {
+
+          const uploaded = await uploadToBunny(
+            optionDFile,
+            "questions/options"
+          );
+
+          item.optionD = uploaded.url;
+        }
+
+      }
+
+      return {
+        ...item,
+
+        categoryId: payload.categoryId,
+        subCategoryId: payload.subCategoryId,
+        courseId: payload.courseId,
+        moduleId: payload.moduleId,
+        chapterId: payload.chapterId,
+        topicId: payload.topicId,
+
+        createdBy: req.user?.id,
+        updatedBy: req.user?.id,
+
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+    })
+
+  );
+
+  response = await Question.bulkCreate(formattedQuestions);
+
+}
 
   // =====================================================
   // INVALID TYPE
@@ -405,7 +560,41 @@ export const updateMaster = catchAsync(async (req, res) => {
     }
 
   }
+// ======================================================
+// TOPIC FILE UPLOAD
+// ======================================================
 
+if (type === "TOPIC") {
+
+  // =========================================
+  // VIDEO UPLOAD
+  // =========================================
+
+  if (req.files?.video?.[0]) {
+
+    const uploadedVideo = await uploadToBunny(
+      req.files.video[0],
+      "topics/videos"
+    );
+
+    payload.videoUrl = uploadedVideo.url;
+  }
+
+  // =========================================
+  // PDF UPLOAD
+  // =========================================
+
+  if (req.files?.pdf?.[0]) {
+
+    const uploadedPdf = await uploadToBunny(
+      req.files.pdf[0],
+      "topics/pdfs"
+    );
+
+    payload.pdfUrl = uploadedPdf.url;
+  }
+
+}
   // ======================================================
   // UPDATE
   // ======================================================

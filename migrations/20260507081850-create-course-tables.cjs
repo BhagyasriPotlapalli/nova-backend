@@ -461,7 +461,10 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: false,
       },
-
+type: {
+  type: DataTypes.ENUM("Text", "Image"),
+  defaultValue: "Text",
+},
       optionA: Sequelize.STRING,
       optionB: Sequelize.STRING,
       optionC: Sequelize.STRING,
@@ -519,11 +522,11 @@ module.exports = {
 
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable("Questions");
-    await queryInterface.dropTable("Topics");
-    await queryInterface.dropTable("Chapters");
-    await queryInterface.dropTable("Modules");
-    await queryInterface.dropTable("Courses");
-    await queryInterface.dropTable("SubCategories");
-    await queryInterface.dropTable("Categories");
+    // await queryInterface.dropTable("Topics");
+    // await queryInterface.dropTable("Chapters");
+    // await queryInterface.dropTable("Modules");
+    // await queryInterface.dropTable("Courses");
+    // await queryInterface.dropTable("SubCategories");
+    // await queryInterface.dropTable("Categories");
   },
 };

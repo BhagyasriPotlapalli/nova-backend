@@ -19,7 +19,10 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
-
+type: {
+  type: DataTypes.ENUM("Text", "Image"),
+  defaultValue: "Text",
+},
       optionA: DataTypes.STRING,
       optionB: DataTypes.STRING,
       optionC: DataTypes.STRING,
