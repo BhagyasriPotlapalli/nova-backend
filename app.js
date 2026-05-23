@@ -15,6 +15,7 @@ import { execSync } from "child_process";
 import userRoutes from "./routes/userRoutes.js";
 import courseRouter from "./routes/courseRoutes.js";
 import studentRouter from "./routes/studentRoutes.js";
+import subscriptionRouter from "./routes/subscriptionRoutes.js";
 import xRobotsAllApi from "./utils/xRobotFun.js";
 
 
@@ -50,5 +51,7 @@ app.use(cors());
 app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRouter);
 app.use("/api/student", studentRouter);
+app.use("/api/subscription", subscriptionRouter);
+
 
 export default app;

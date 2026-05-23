@@ -521,7 +521,7 @@ type: {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("Questions");
+    // await queryInterface.dropTable("Questions");
     // await queryInterface.dropTable("Topics");
     // await queryInterface.dropTable("Chapters");
     // await queryInterface.dropTable("Modules");

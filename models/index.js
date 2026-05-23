@@ -61,7 +61,14 @@ const {
   CourseSubscription,
   Assignment,
   AssignmentQuestion,
-  StudentAnswer
+  StudentAnswer,
+
+  // NEW MODELS
+  Plan,
+  Subscription,
+  SubscriptionCourse,
+  Payment,
+
 } = db;
 
 // Category → SubCategory
@@ -266,6 +273,105 @@ Question.hasMany(AssignmentQuestion, {
   foreignKey: "questionId",
   as: "assignmentQuestions",
 });
+
+
+if (Plan && Subscription) {
+
+  Plan.hasMany(Subscription, {
+    foreignKey: "planId",
+    as: "subscriptions",
+  });
+
+  Subscription.belongsTo(Plan, {
+    foreignKey: "planId",
+    as: "plan",
+  });
+
+}
+if (User && Subscription) {
+
+  User.hasMany(Subscription, {
+    foreignKey: "userId",
+    as: "userSubscriptions",
+  });
+
+  Subscription.belongsTo(User, {
+    foreignKey: "userId",
+    as: "student",
+  });
+
+}
+if (Subscription && SubscriptionCourse) {
+
+  Subscription.hasMany(
+    SubscriptionCourse,
+    {
+      foreignKey: "subscriptionId",
+      as: "subscriptionCourses",
+    }
+  );
+
+  SubscriptionCourse.belongsTo(
+    Subscription,
+    {
+      foreignKey: "subscriptionId",
+      as: "subscription",
+    }
+  );
+
+}
+if (Course && SubscriptionCourse) {
+
+  Course.hasMany(
+    SubscriptionCourse,
+    {
+      foreignKey: "courseId",
+      as: "courseSubscriptions",
+    }
+  );
+
+  SubscriptionCourse.belongsTo(
+    Course,
+    {
+      foreignKey: "courseId",
+      as: "course",
+    }
+  );
+
+}
+
+if (User && SubscriptionCourse) {
+
+  User.hasMany(
+    SubscriptionCourse,
+    {
+      foreignKey: "userId",
+      as: "selectedCourses",
+    }
+  );
+
+  SubscriptionCourse.belongsTo(
+    User,
+    {
+      foreignKey: "userId",
+      as: "student",
+    }
+  );
+
+}
+if (User && Payment) {
+
+  User.hasMany(Payment, {
+    foreignKey: "userId",
+    as: "payments",
+  });
+
+  Payment.belongsTo(User, {
+    foreignKey: "userId",
+    as: "student",
+  });
+
+}
 // 👇 EXISTING associate FUNCTION SUPPORT
 Object.keys(db).forEach((modelName) => {
   if (db[modelName].associate) {
