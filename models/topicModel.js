@@ -31,6 +31,9 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
       },
 
+       codeBase: {
+        type: DataTypes.TEXT("long"),
+      },
       orderNo: {
         type: DataTypes.INTEGER,
         defaultValue: 1,

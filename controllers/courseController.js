@@ -682,29 +682,43 @@ export const getAllMasters = catchAsync(async (req, res) => {
 
   if (search) {
 
-    if (type === "CATEGORY" || type === "SUB_CATEGORY") {
+    // if (type === "CATEGORY" || type === "SUB_CATEGORY") {
 
-      where.name = {
-        [Op.like]: `%${search}%`,
-      };
+    //   where.name = {
+    //     [Op.like]: `%${search}%`,
+    //   };
 
-    }
+    // }
 
-    else if (type === "QUESTION") {
+    // else if (type === "QUESTION") {
 
-      where.question = {
-        [Op.like]: `%${search}%`,
-      };
+    //   where.question = {
+    //     [Op.like]: `%${search}%`,
+    //   };
 
-    }
+    // }
 
-    else {
+    // else {
 
-      where.title = {
-        [Op.like]: `%${search}%`,
-      };
+    //   where.title = {
+    //     [Op.like]: `%${search}%`,
+    //   };
 
-    }
+    // }
+
+    const searchFieldMap = {
+  CATEGORY: "title",
+  SUB_CATEGORY: "name",
+  QUESTION: "question",
+};
+
+const field = searchFieldMap[type] || "title";
+
+if (search) {
+  where[field] = {
+    [Op.like]: `%${search}%`,
+  };
+}
 
   }
 
