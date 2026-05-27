@@ -3,6 +3,8 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import {catchAsync} from "../utils/catchAsync.js";
 const User = db.User;
+const Course =db.Course;
+const Payment = db.Payment;
 import { Op } from "sequelize";
 // 🔐 Generate Token (90 days)
 const generateToken = (user) => {
@@ -243,4 +245,156 @@ export const updateUser = catchAsync(async (req, res) => {
     message: "User updated successfully",
     data: user,
   });
+});
+
+const getMonthRange = (date = new Date()) => {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+  return { start, end };
+};
+
+const getPreviousMonthRange = (date = new Date()) => {
+  const start = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  const end = new Date(date.getFullYear(), date.getMonth(), 0, 23, 59, 59);
+  return { start, end };
+};
+const getPercentageChange = (current, previous) => {
+  if (!previous || previous === 0) return current > 0 ? 100 : 0;
+  return ((current - previous) / previous) * 100;
+};
+
+
+export const getDashboardStatus = catchAsync(async (req, res) => {
+  try {
+    const now = new Date();
+
+    const currentMonth = getMonthRange(now);
+    const prevMonth = getPreviousMonthRange(now);
+
+    // ================= USERS =================
+    const totalUsers = await User.count({
+      where: { role: "student",isDeleted: false },
+    });
+
+    const currentStudents = await User.count({
+      where: {
+        role: "student",
+        isDeleted: false,
+        createdAt: {
+          [Op.between]: [currentMonth.start, currentMonth.end],
+        },
+      },
+    });
+
+    const prevStudents = await User.count({
+      where: {
+        role: "student",
+        isDeleted: false,
+        createdAt: {
+          [Op.between]: [prevMonth.start, prevMonth.end],
+        },
+      },
+    });
+
+    const userGrowthPercent = getPercentageChange(
+      currentStudents,
+      prevStudents
+    );
+
+    // ================= COURSES =================
+    const totalCourses = await Course.count({
+      where: { deleted: false },
+    });
+
+    const currentCourses = await Course.count({
+      where: {
+        createdAt: {
+          [Op.between]: [currentMonth.start, currentMonth.end],
+        },
+      },
+    });
+
+    const prevCourses = await Course.count({
+      where: {
+        createdAt: {
+          [Op.between]: [prevMonth.start, prevMonth.end],
+        },
+      },
+    });
+
+    const courseGrowthPercent = getPercentageChange(
+      currentCourses,
+      prevCourses
+    );
+
+    
+
+const totalRevenue = await Payment.sum("amount", {
+  where: {
+    paymentStatus: "SUCCESS",
+    isDeleted: false,
+  },
+}) || 0;
+
+// current month revenue
+const currentRevenue = await Payment.sum("amount", {
+  where: {
+    paymentStatus: "SUCCESS",
+    isDeleted: false,
+    createdAt: {
+      [Op.between]: [currentMonth.start, currentMonth.end],
+    },
+  },
+}) || 0;
+
+// previous month revenue
+const prevRevenue = await Payment.sum("amount", {
+  where: {
+    paymentStatus: "SUCCESS",
+    isDeleted: false,
+    createdAt: {
+      [Op.between]: [prevMonth.start, prevMonth.end],
+    },
+  },
+}) || 0;
+
+const revenueGrowthPercent = getPercentageChange(
+  currentRevenue,
+  prevRevenue
+);
+
+    // ================= RESPONSE =================
+    return res.json({
+      success: true,
+      data: {
+        users: {
+          totalUsers,
+          currentMonthStudents: currentStudents,
+          previousMonthStudents: prevStudents,
+          growthPercent: userGrowthPercent.toFixed(2),
+        },
+
+        courses: {
+          totalCourses,
+          currentMonthCourses: currentCourses,
+          previousMonthCourses: prevCourses,
+          growthPercent: courseGrowthPercent.toFixed(2),
+        },
+
+        payments: {
+          totalRevenue,
+          currentMonthRevenue: currentRevenue,
+          previousMonthRevenue: prevRevenue,
+          growthPercent: revenueGrowthPercent.toFixed(2),
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Dashboard stats error",
+      error: error.message,
+    });
+  }
 });
