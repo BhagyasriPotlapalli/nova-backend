@@ -652,9 +652,11 @@ export const getAllMasters = catchAsync(async (req, res) => {
     deleted: false,
   };
 
-  if (categoryId) {
-    where.categoryId = categoryId;
-  }
+  if (type === "CATEGORY" && categoryId) {
+  where.id = categoryId;
+} else if (categoryId) {
+  where.categoryId = categoryId;
+}
 
   if (subCategoryId) {
     where.subCategoryId = subCategoryId;
