@@ -10,7 +10,7 @@ const Course = db.Course;
 const Topic = db.Topic;
 const Question = db.Question;
 
-const CourseSubscription = db.CourseSubscription;
+const SubscriptionCourse = db.SubscriptionCourse;
 const Assignment = db.Assignment;
 const AssignmentQuestion = db.AssignmentQuestion;
 const StudentAnswer = db.StudentAnswer;
@@ -23,7 +23,7 @@ export const createSubscription = catchAsync(async (req, res) => {
 
   const { courseId, userId, expireDate } = req.body;
 
-  const existingSubscription = await CourseSubscription.findOne({
+  const existingSubscription = await SubscriptionCourse.findOne({
     where: {
       courseId,
       userId,
@@ -38,7 +38,7 @@ export const createSubscription = catchAsync(async (req, res) => {
     });
   }
 
-  const response = await CourseSubscription.create({
+  const response = await SubscriptionCourse.create({
     courseId,
     userId,
     expireDate,
@@ -72,7 +72,7 @@ export const getAllSubscriptions = catchAsync(async (req, res) => {
     whereCondition.courseId = courseId;
   }
 
-  const response = await CourseSubscription.findAll({
+  const response = await SubscriptionCourse.findAll({
 
     where: whereCondition,
 
@@ -121,7 +121,7 @@ export const updateSubscription = catchAsync(async (req, res) => {
 
   const { id } = req.params;
 
-  const subscription = await CourseSubscription.findByPk(id);
+  const subscription = await SubscriptionCourse.findByPk(id);
 
   if (!subscription) {
     return res.status(404).json({
@@ -327,21 +327,21 @@ export const submitAssignmentAnswers = catchAsync(async (req, res) => {
   } = req.body;
 
   const userId = req.user.id;
-
+console.log(userId)
   // =====================================================
   // CHECK SUBSCRIPTION
   // =====================================================
 
   const assignment = await Assignment.findByPk(assignmentId);
-
-  const subscription = await CourseSubscription.findOne({
+console.log(assignment.courseId)
+  const subscription = await SubscriptionCourse.findOne({
     where: {
       userId,
       courseId: assignment.courseId,
-      isActive: true,
+      // isActive: true,
     },
   });
-
+console.log(subscription)
   if (!subscription) {
     return res.status(403).json({
       success: false,

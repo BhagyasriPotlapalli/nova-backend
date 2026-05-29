@@ -58,7 +58,7 @@ const {
   Topic,
   Question,
   User,
-  CourseSubscription,
+  // SubscriptionCourse,
   Assignment,
   AssignmentQuestion,
   StudentAnswer,
@@ -155,22 +155,22 @@ if (Topic && Question) {
 // COURSE SUBSCRIPTION
 // =====================================================
 
-User.hasMany(CourseSubscription, {
+User.hasMany(SubscriptionCourse, {
   foreignKey: "userId",
   as: "subscriptions",
 });
 
-CourseSubscription.belongsTo(User, {
+SubscriptionCourse.belongsTo(User, {
   foreignKey: "userId",
   as: "student",
 });
 
-Course.hasMany(CourseSubscription, {
+Course.hasMany(SubscriptionCourse, {
   foreignKey: "courseId",
   as: "subscriptions",
 });
 
-CourseSubscription.belongsTo(Course, {
+SubscriptionCourse.belongsTo(Course, {
   foreignKey: "courseId",
   as: "course",
 });
@@ -320,45 +320,45 @@ if (Subscription && SubscriptionCourse) {
   );
 
 }
-if (Course && SubscriptionCourse) {
+// if (Course && SubscriptionCourse) {
 
-  Course.hasMany(
-    SubscriptionCourse,
-    {
-      foreignKey: "courseId",
-      as: "courseSubscriptions",
-    }
-  );
+//   Course.hasMany(
+//     SubscriptionCourse,
+//     {
+//       foreignKey: "courseId",
+//       as: "SubscriptionCourses",
+//     }
+//   );
 
-  SubscriptionCourse.belongsTo(
-    Course,
-    {
-      foreignKey: "courseId",
-      as: "course",
-    }
-  );
+//   SubscriptionCourse.belongsTo(
+//     Course,
+//     {
+//       foreignKey: "courseId",
+//       as: "course",
+//     }
+//   );
 
-}
+// }
 
-if (User && SubscriptionCourse) {
+// if (User && SubscriptionCourse) {
 
-  User.hasMany(
-    SubscriptionCourse,
-    {
-      foreignKey: "userId",
-      as: "selectedCourses",
-    }
-  );
+//   User.hasMany(
+//     SubscriptionCourse,
+//     {
+//       foreignKey: "userId",
+//       as: "selectedCourses",
+//     }
+//   );
 
-  SubscriptionCourse.belongsTo(
-    User,
-    {
-      foreignKey: "userId",
-      as: "student",
-    }
-  );
+//   SubscriptionCourse.belongsTo(
+//     User,
+//     {
+//       foreignKey: "userId",
+//       as: "student",
+//     }
+//   );
 
-}
+// }
 if (User && Payment) {
 
   User.hasMany(Payment, {

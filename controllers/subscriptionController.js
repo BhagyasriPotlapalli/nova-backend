@@ -171,7 +171,7 @@ export const verifyPayment = catchAsync(async (req, res) => {
     endDate,
   });
 
-  if (!subscription.plan.isUnlimited) {
+  // if (!subscription.plan.isUnlimited) {
     for (const courseId of selectedCourses) {
       await SubscriptionCourse.create({
         subscriptionId,
@@ -179,7 +179,7 @@ export const verifyPayment = catchAsync(async (req, res) => {
         courseId,
       });
     }
-  }
+  // }
 
   await Payment.update(
     {
