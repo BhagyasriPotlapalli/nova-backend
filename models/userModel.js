@@ -7,7 +7,8 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-       lastName: {
+
+      lastName: {
         type: DataTypes.STRING,
         allowNull: true,
       },
@@ -16,54 +17,73 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
-        // validate: { isEmail: true },
       },
-phoneNumber: {
+
+      phoneNumber: {
         type: DataTypes.STRING,
         allowNull: true,
       },
+
       password: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-profile: {
+
+      profile: {
         type: DataTypes.STRING,
         allowNull: true,
       },
+
       role: {
-        type: DataTypes.ENUM("admin", "student", "faculty"),
-        defaultValue: "student", // ✅ default role
+        type: DataTypes.ENUM(
+          "super_admin",
+          "admin",
+          "student",
+          "faculty"
+        ),
+        defaultValue: "student",
       },
-location: {
+
+      location: {
         type: DataTypes.STRING,
         allowNull: true,
       },
+
       isVerified: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false, // ✅ new field
+        defaultValue: false,
       },
-webSiteLink: {
-  type: DataTypes.STRING,
-  allowNull: true,
-},
 
-twitterLink: {
-  type: DataTypes.STRING,
-  allowNull: true,
-},
+      webSiteLink: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
 
-linkedInLink: {
-  type: DataTypes.STRING,
-  allowNull: true,
-},
+      twitterLink: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+
+      linkedInLink: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+
+      consent: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+
       isDeleted: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false, // ✅ new field
+        defaultValue: false,
       },
-        isDeActivate: {
+
+      isDeActivate: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false, // ✅ new field
+        defaultValue: false,
       },
+
       createdBy: {
         type: DataTypes.INTEGER,
         allowNull: true,

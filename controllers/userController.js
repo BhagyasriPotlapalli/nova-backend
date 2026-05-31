@@ -77,6 +77,7 @@ export const login = async (req, res) => {
       message: "Login successful",
       userId:user.id,
      role:user.role,
+     consent:user.consent,
      email:user.email,
       token: `Bearer ${token}`,
     });

@@ -404,6 +404,62 @@ console.log(subscription)
 // GET STUDENT RESULTS
 // =====================================================
 
+// export const getStudentResults = catchAsync(async (req, res) => {
+
+//   const { userId, assignmentId } = req.query;
+
+//   let whereCondition = {};
+
+//   if (userId) {
+//     whereCondition.userId = userId;
+//   }
+
+//   if (assignmentId) {
+//     whereCondition.assignmentId = assignmentId;
+//   }
+
+//   const response = await StudentAnswer.findAll({
+
+//     where: whereCondition,
+
+//     include: [
+
+//       {
+//         model: Question,
+//         as: "question",
+
+//         attributes: [
+//           "id",
+//           "question",
+//           "optionA",
+//           "optionB",
+//           "optionC",
+//           "optionD",
+//         ],
+//       },
+
+//       {
+//         model: Assignment,
+//         as: "assignment",
+
+//         attributes: [
+//           "id",
+//           "title",
+//         ],
+//       },
+//     ],
+
+//     order: [["id", "DESC"]],
+
+//   });
+
+//   return res.status(200).json({
+//     success: true,
+//     count: response.length,
+//     data: response,
+//   });
+
+// });
 export const getStudentResults = catchAsync(async (req, res) => {
 
   const { userId, assignmentId } = req.query;
@@ -435,6 +491,7 @@ export const getStudentResults = catchAsync(async (req, res) => {
           "optionB",
           "optionC",
           "optionD",
+          "explanation", // Added
         ],
       },
 
