@@ -490,28 +490,23 @@ export const updateAssignment = catchAsync(async (req, res) => {
 // =====================================================
 
 export const submitAssignmentAnswers = catchAsync(async (req, res) => {
-
-  const {
-    assignmentId,
-    answers,
-  } = req.body;
+  const { assignmentId, answers } = req.body;
 
   const userId = req.user.id;
-console.log(userId)
+
   // =====================================================
   // CHECK SUBSCRIPTION
   // =====================================================
 
   const assignment = await Assignment.findByPk(assignmentId);
-console.log(assignment.courseId)
+
   const subscription = await SubscriptionCourse.findOne({
     where: {
       userId,
       courseId: assignment.courseId,
-      // isActive: true,
     },
   });
-console.log(subscription)
+
   if (!subscription) {
     return res.status(403).json({
       success: false,
@@ -522,13 +517,13 @@ console.log(subscription)
   let totalMarks = 0;
 
   const formattedAnswers = [];
+  const responseAnswers = [];
 
   // =====================================================
   // CHECK ANSWERS
   // =====================================================
 
   for (const item of answers) {
-
     const question = await Question.findByPk(item.questionId);
 
     const isCorrect =
@@ -545,7 +540,6 @@ console.log(subscription)
 
       studentAnswer: item.studentAnswer,
       correctAnswer: question.correctAnswer,
-      explanation:question.explanation,
 
       explanation: isCorrect
         ? null
@@ -558,16 +552,35 @@ console.log(subscription)
       updatedAt: new Date(),
     });
 
+    responseAnswers.push({
+      questionId: question.id,
+      question: question.question,
+      optionA: question.optionA,
+      optionB: question.optionB,
+      optionC: question.optionC,
+      optionD: question.optionD,
+
+      studentAnswer: item.studentAnswer,
+      correctAnswer: question.correctAnswer,
+
+      isCorrect,
+      marks,
+
+      explanation: isCorrect
+        ? null
+        : question.explanation,
+    });
   }
 
   await StudentAnswer.bulkCreate(formattedAnswers);
 
   return res.status(200).json({
     success: true,
-    message: "Assignment submitted successfully",
+    // message: "Assignment submitted successfully",
     totalMarks,
+    totalQuestions: responseAnswers.length,
+    answers: responseAnswers,
   });
-
 });
 
 // =====================================================
