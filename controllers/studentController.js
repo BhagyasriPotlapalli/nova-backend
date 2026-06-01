@@ -4,7 +4,7 @@ import { catchAsync } from "../utils/catchAsync.js";
 import { Op } from "sequelize";
 
 import db from "../models/index.js";
-
+const { sequelize ,Sequelize} = db;
 const User = db.User;
 const Course = db.Course;
 const Topic = db.Topic;
@@ -211,12 +211,84 @@ export const createAssignment = catchAsync(async (req, res) => {
 // GET ALL ASSIGNMENTS
 // =====================================================
 
-export const getAllAssignments = catchAsync(async (req, res) => {
+// export const getAllAssignments = catchAsync(async (req, res) => {
 
-  const {
-    courseId,
-    topicId,
-  } = req.query;
+//   const {
+//     courseId,
+//     topicId,
+//   } = req.query;
+
+//   let whereCondition = {
+//     isActive: true,
+//   };
+
+//   if (courseId) {
+//     whereCondition.courseId = courseId;
+//   }
+
+//   if (topicId) {
+//     whereCondition.topicId = topicId;
+//   }
+
+//   const response = await Assignment.findAll({
+
+//     where: whereCondition,
+
+//     include: [
+
+//       {
+//         model: Course,
+//         as: "course",
+
+//         attributes: [
+//           "id",
+//           "title",
+//         ],
+//       },
+
+//       {
+//         model: Topic,
+//         as: "topic",
+
+//         attributes: [
+//           "id",
+//           "title",
+//         ],
+//       },
+
+//       {
+//         model: Question,
+//         as: "questions",
+
+//         through: {
+//           attributes: [],
+//         },
+
+//         attributes: [
+//           "id",
+//           "question",
+//           "optionA",
+//           "optionB",
+//           "optionC",
+//           "optionD",
+//           "marks",
+//         ],
+//       },
+//     ],
+
+//     order: [["id", "DESC"]],
+
+//   });
+
+//   return res.status(200).json({
+//     success: true,
+//     count: response.length,
+//     data: response,
+//   });
+
+// });
+export const getAllAssignments = catchAsync(async (req, res) => {
+  const { courseId, topicId } = req.query;
 
   let whereCondition = {
     isActive: true,
@@ -230,40 +302,32 @@ export const getAllAssignments = catchAsync(async (req, res) => {
     whereCondition.topicId = topicId;
   }
 
-  const response = await Assignment.findAll({
+  // =====================================================
+  // GET ASSIGNMENTS
+  // =====================================================
 
+  const assignments = await Assignment.findAll({
     where: whereCondition,
 
     include: [
-
       {
         model: Course,
         as: "course",
-
-        attributes: [
-          "id",
-          "title",
-        ],
+        attributes: ["id", "title"],
       },
 
       {
         model: Topic,
         as: "topic",
-
-        attributes: [
-          "id",
-          "title",
-        ],
+        attributes: ["id", "title"],
       },
 
       {
         model: Question,
         as: "questions",
-
         through: {
           attributes: [],
         },
-
         attributes: [
           "id",
           "question",
@@ -277,17 +341,123 @@ export const getAllAssignments = catchAsync(async (req, res) => {
     ],
 
     order: [["id", "DESC"]],
-
   });
+
+  let response = assignments.map((item) => item.toJSON());
+
+  // =====================================================
+  // STUDENT STATUS
+  // =====================================================
+
+  if (req.user?.role === "student" && assignments.length > 0) {
+    const assignmentIds = assignments.map((item) => item.id);
+
+    // Total Questions Per Assignment
+    const assignmentQuestions = await AssignmentQuestion.findAll({
+      where: {
+        assignmentId: {
+          [Op.in]: assignmentIds,
+        },
+      },
+
+      attributes: [
+        "assignmentId",
+        [
+          Sequelize.fn("COUNT", Sequelize.col("questionId")),
+          "totalQuestions",
+        ],
+      ],
+
+      group: ["assignmentId"],
+      raw: true,
+    });
+
+    // Student Answer Count Per Assignment
+    const studentAnswers = await StudentAnswer.findAll({
+      where: {
+        userId: req.user.id,
+        assignmentId: {
+          [Op.in]: assignmentIds,
+        },
+      },
+
+      attributes: [
+        "assignmentId",
+        [
+          Sequelize.fn("COUNT", Sequelize.col("questionId")),
+          "answeredQuestions",
+        ],
+      ],
+
+      group: ["assignmentId"],
+      raw: true,
+    });
+
+    // =====================================================
+    // MAPS
+    // =====================================================
+
+    const questionMap = {};
+
+    assignmentQuestions.forEach((item) => {
+      questionMap[item.assignmentId] = Number(
+        item.totalQuestions
+      );
+    });
+
+    const answerMap = {};
+
+    studentAnswers.forEach((item) => {
+      answerMap[item.assignmentId] = Number(
+        item.answeredQuestions
+      );
+    });
+
+    // =====================================================
+    // ADD STATUS
+    // =====================================================
+
+    response = response.map((assignment) => {
+      const totalQuestions =
+        questionMap[assignment.id] || 0;
+
+      const answeredQuestions =
+        answerMap[assignment.id] || 0;
+
+      let status = "new";
+
+      // No answers submitted
+      if (answeredQuestions === 0) {
+        status = "new";
+      }
+      // Some answers submitted
+      else if (answeredQuestions < totalQuestions) {
+        status = "pending";
+      }
+      // All questions answered
+      else if (answeredQuestions === totalQuestions) {
+        status = "completed";
+      }
+      // Safety fallback
+      else {
+        status = "completed";
+      }
+
+      return {
+        ...assignment,
+        status,
+        answeredQuestions,
+        totalQuestions,
+      };
+    });
+  }
 
   return res.status(200).json({
     success: true,
     count: response.length,
     data: response,
   });
-
 });
-
 // =====================================================
 // UPDATE ASSIGNMENT
 // =====================================================
@@ -616,6 +786,73 @@ export const createAssignmentQuestions = catchAsync(
 // GET ALL ASSIGNMENT QUESTIONS
 // =====================================================
 
+// export const getAllAssignmentQuestions =
+//   catchAsync(async (req, res) => {
+
+//     const {
+//       assignmentId,
+//       questionId,
+//     } = req.query;
+
+//     let whereCondition = {};
+
+//     if (assignmentId) {
+//       whereCondition.assignmentId =
+//         assignmentId;
+//     }
+
+//     if (questionId) {
+//       whereCondition.questionId =
+//         questionId;
+//     }
+
+//     const response =
+//       await AssignmentQuestion.findAll({
+
+//         where: whereCondition,
+
+//         include: [
+
+//           {
+//             model: Assignment,
+//             as: "assignment",
+
+//             attributes: [
+//               "id",
+//               "title",
+//             ],
+//           },
+
+//           {
+//             model: Question,
+//             as: "question",
+
+//             attributes: [
+//               "id",
+//               "question",
+//               "optionA",
+//               "optionB",
+//               "optionC",
+//               "optionD",
+//             //   "correctAnswer",
+//               "marks",
+//             ],
+//           },
+
+//         ],
+
+//         order: [["id", "DESC"]],
+
+//       });
+
+//     return res.status(200).json({
+//       success: true,
+//       count: response.length,
+//       data: response,
+//     });
+
+//   });
+
 export const getAllAssignmentQuestions =
   catchAsync(async (req, res) => {
 
@@ -664,7 +901,7 @@ export const getAllAssignmentQuestions =
               "optionB",
               "optionC",
               "optionD",
-            //   "correctAnswer",
+              // "correctAnswer",
               "marks",
             ],
           },
@@ -675,10 +912,46 @@ export const getAllAssignmentQuestions =
 
       });
 
+    // ==========================================
+    // ADD COMPLETED FLAG FOR STUDENT
+    // ==========================================
+
+    let data = response;
+// console.log("data",data)
+    if (
+  req.user?.role === "student" &&
+  response.length > 0
+) {
+
+  data = await Promise.all(
+    response.map(async (item) => {
+
+      const answer =
+        await StudentAnswer.findOne({
+          where: {
+            assignmentId: item.assignmentId,
+            questionId: item.questionId,
+            userId: req.user.id,
+          },
+        });
+
+      const itemData = item.toJSON();
+
+      return {
+        ...itemData,
+        question: {
+          ...itemData.question,
+          completed: !!answer,
+        },
+      };
+    })
+  );
+
+}
     return res.status(200).json({
       success: true,
       count: response.length,
-      data: response,
+      data,
     });
 
   });

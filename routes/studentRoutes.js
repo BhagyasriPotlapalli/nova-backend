@@ -68,7 +68,7 @@ router.post(
 // =====================================================
 
 router.get(
-  "/assignmentQuestions",
+  "/assignmentQuestions",protect,
   studentController.getAllAssignmentQuestions
 );
 
