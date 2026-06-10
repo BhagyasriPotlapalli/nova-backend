@@ -507,11 +507,33 @@ export const submitAssignmentAnswers = catchAsync(async (req, res) => {
     },
   });
 
+  // =====================================================
+  // FREE ACCESS FOR FIRST 5 QUESTIONS
+  // =====================================================
+
   if (!subscription) {
-    return res.status(403).json({
-      success: false,
-      message: "Please subscribe to this course",
+    const answeredCount = await StudentAnswer.count({
+      where: {
+        assignmentId,
+        userId,
+      },
     });
+
+    if (answeredCount >= 5) {
+      return res.status(403).json({
+        success: false,
+        message: "Please subscribe to continue",
+      });
+    }
+
+    const remainingQuestions = 5 - answeredCount;
+
+    if (answers.length > remainingQuestions) {
+      return res.status(403).json({
+        success: false,
+        message: `Only ${remainingQuestions} free question(s) remaining. Please subscribe to continue.`,
+      });
+    }
   }
 
   let totalMarks = 0;
@@ -576,7 +598,6 @@ export const submitAssignmentAnswers = catchAsync(async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    // message: "Assignment submitted successfully",
     totalMarks,
     totalQuestions: responseAnswers.length,
     answers: responseAnswers,

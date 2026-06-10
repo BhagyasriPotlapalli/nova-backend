@@ -1,26 +1,77 @@
 import db from "../models/index.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import {catchAsync} from "../utils/catchAsync.js";
+import { catchAsync } from "../utils/catchAsync.js";
 const User = db.User;
-const Course =db.Course;
+const Course = db.Course;
 const Payment = db.Payment;
 import { Op } from "sequelize";
 // 🔐 Generate Token (90 days)
 const generateToken = (user) => {
-  return jwt.sign(
-    { id: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "90d" }
-  );
+  return jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: "90d",
+  });
 };
+import {
+  CognitoIdentityProviderClient,
+  AdminDeleteUserCommand,
+  AdminInitiateAuthCommand,
+  AdminCreateUserCommand,
+  AdminSetUserPasswordCommand,
+  AdminAddUserToGroupCommand,
+  InitiateAuthCommand,
+  RespondToAuthChallengeCommand,
+  ForgotPasswordCommand,
+  ListUsersCommand,
+  ConfirmForgotPasswordCommand,
+  AdminConfirmSignUpCommand,
+  AdminGetUserCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
+
+export const cognito = new CognitoIdentityProviderClient({
+  region: process.env.AWS_REGION || "ap-south-1",
+});
 
 // ✅ Register
+// export const register = async (req, res) => {
+//   try {
+//     const { password, email } = req.body;
+
+//     const exists = await User.findOne({ where: { email } });
+
+//     if (exists) {
+//       return res.status(400).json({
+//         message: "Email already exists",
+//       });
+//     }
+
+//     // hash password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // create user
+//     const user = await User.create({
+//       ...req.body,
+//       password: hashedPassword,
+//       isVerified:true,
+//     });
+
+//     res.status(201).json({
+//       message: "User registered successfully",
+//       user,
+//     });
+//   } catch (err) {
+//     res.status(400).json({
+//       error: err.message,
+//     });
+//   }
+// };
 export const register = async (req, res) => {
   try {
-    const { password, email } = req.body;
+    const { password, email, name } = req.body;
 
-    const exists = await User.findOne({ where: { email } });
+    const exists = await User.findOne({
+      where: { email },
+    });
 
     if (exists) {
       return res.status(400).json({
@@ -28,21 +79,73 @@ export const register = async (req, res) => {
       });
     }
 
-    // hash password
+    try {
+      // Create user in Cognito and send email
+      await cognito.send(
+        new AdminCreateUserCommand({
+          UserPoolId: process.env.COGNITO_USER_POOL_ID,
+
+          Username: email,
+
+          DesiredDeliveryMediums: ["EMAIL"],
+
+          UserAttributes: [
+            {
+              Name: "email",
+              Value: email,
+            },
+            {
+              Name: "name",
+              Value: name || "",
+            },
+            {
+              Name: "email_verified",
+              Value: "true",
+            },
+          ],
+        })
+      );
+
+      // Set permanent password
+      await cognito.send(
+        new AdminSetUserPasswordCommand({
+          UserPoolId: process.env.COGNITO_USER_POOL_ID,
+          Username: email,
+          Password: password,
+          Permanent: true,
+        })
+      );
+    } catch (error) {
+      console.error("Cognito Error:", error);
+
+      if (error.name === "UsernameExistsException") {
+        return res.status(400).json({
+          message: "Email already exists",
+        });
+      }
+
+      return res.status(400).json({
+        message: error.message,
+      });
+    }
+
+    // Existing logic unchanged
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // create user
     const user = await User.create({
       ...req.body,
       password: hashedPassword,
-      isVerified:true,
+      isVerified: true,
     });
 
     res.status(201).json({
-      message: "User registered successfully",
+      message:
+        "User registered successfully. Invitation email sent successfully.",
       user,
     });
   } catch (err) {
+    console.error(err);
+
     res.status(400).json({
       error: err.message,
     });
@@ -75,10 +178,10 @@ export const login = async (req, res) => {
 
     res.json({
       message: "Login successful",
-      userId:user.id,
-     role:user.role,
-     consent:user.consent,
-     email:user.email,
+      userId: user.id,
+      role: user.role,
+      consent: user.consent,
+      email: user.email,
       token: `Bearer ${token}`,
     });
   } catch (err) {
@@ -93,47 +196,128 @@ export const changePassword = async (req, res) => {
 
     const user = await User.findByPk(req.user.id);
 
-    const match = await bcrypt.compare(oldPassword, user.password);
-
-    if (!match) {
-      return res.status(400).json({ message: "Old password incorrect" });
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
 
-    const hashed = await bcrypt.hash(newPassword, 10);
+    // Verify old password from Cognito
+    // try {
+    //   await cognito.send(
+    //     new InitiateAuthCommand({
+    //       AuthFlow: "USER_PASSWORD_AUTH",
+    //       ClientId: process.env.COGNITO_CLIENT_ID,
+    //       AuthParameters: {
+    //         USERNAME: user.email,
+    //         PASSWORD: oldPassword,
+    //       },
+    //     })
+    //   );
+    // } catch (error) {
+    //   return res.status(400).json({
+    //     message: "Old password incorrect",
+    //   });
+    // }
 
-    user.password = hashed;
+    // Update Cognito password
+    await cognito.send(
+      new AdminSetUserPasswordCommand({
+        UserPoolId: process.env.COGNITO_USER_POOL_ID,
+        Username: user.email,
+        Password: newPassword,
+        Permanent: true,
+      })
+    );
+
+    // Store hashed password in DB
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashedPassword;
     user.updatedBy = req.user.id;
 
     await user.save();
 
-    res.json({ message: "Password updated successfully" });
+    res.status(200).json({
+      message: "Password updated successfully",
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({
+      error: err.message,
+    });
   }
 };
 
 // 🔄 Forgot Password (basic version)
 export const forgotPassword = async (req, res) => {
   try {
-    const { email, newPassword } = req.body;
+    const { email } = req.body;
 
-    const user = await User.findOne({ where: { email } });
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
     }
 
-    const hashed = await bcrypt.hash(newPassword, 10);
+    const result = await cognito.send(
+      new ForgotPasswordCommand({
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        Username: email,
+      })
+    );
 
-    user.password = hashed;
-    await user.save();
-
-    res.json({ message: "Password reset successful" });
+    res.status(200).json({
+      message: "OTP sent successfully",
+      result,
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({
+      error: err.message,
+    });
   }
 };
 
+export const confirmForgotPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({
+        message: "Email, OTP and newPassword are required",
+      });
+    }
+
+    await cognito.send(
+      new ConfirmForgotPasswordCommand({
+        ClientId: process.env.COGNITO_CLIENT_ID,
+        Username: email,
+        ConfirmationCode: otp,
+        Password: newPassword,
+      })
+    );
+
+    // Update hashed password in DB
+    const user = await User.findOne({
+      where: { email },
+    });
+
+    if (user) {
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      user.password = hashedPassword;
+
+      await user.save();
+    }
+
+    res.status(200).json({
+      message: "Password reset successful",
+    });
+  } catch (err) {
+    res.status(400).json({
+      error: err.message,
+    });
+  }
+};
 // ✅ Verify User (manual/simple)
 export const verifyUser = async (req, res) => {
   try {
@@ -153,8 +337,6 @@ export const verifyUser = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
-
-
 
 // ======================================================
 // GET USER BY ID
@@ -264,7 +446,6 @@ const getPercentageChange = (current, previous) => {
   return ((current - previous) / previous) * 100;
 };
 
-
 export const getDashboardStatus = catchAsync(async (req, res) => {
   try {
     const now = new Date();
@@ -274,7 +455,7 @@ export const getDashboardStatus = catchAsync(async (req, res) => {
 
     // ================= USERS =================
     const totalUsers = await User.count({
-      where: { role: "student",isDeleted: false },
+      where: { role: "student", isDeleted: false },
     });
 
     const currentStudents = await User.count({
@@ -299,7 +480,7 @@ export const getDashboardStatus = catchAsync(async (req, res) => {
 
     const userGrowthPercent = getPercentageChange(
       currentStudents,
-      prevStudents
+      prevStudents,
     );
 
     // ================= COURSES =================
@@ -325,44 +506,45 @@ export const getDashboardStatus = catchAsync(async (req, res) => {
 
     const courseGrowthPercent = getPercentageChange(
       currentCourses,
-      prevCourses
+      prevCourses,
     );
 
-    
+    const totalRevenue =
+      (await Payment.sum("amount", {
+        where: {
+          paymentStatus: "SUCCESS",
+          isDeleted: false,
+        },
+      })) || 0;
 
-const totalRevenue = await Payment.sum("amount", {
-  where: {
-    paymentStatus: "SUCCESS",
-    isDeleted: false,
-  },
-}) || 0;
+    // current month revenue
+    const currentRevenue =
+      (await Payment.sum("amount", {
+        where: {
+          paymentStatus: "SUCCESS",
+          isDeleted: false,
+          createdAt: {
+            [Op.between]: [currentMonth.start, currentMonth.end],
+          },
+        },
+      })) || 0;
 
-// current month revenue
-const currentRevenue = await Payment.sum("amount", {
-  where: {
-    paymentStatus: "SUCCESS",
-    isDeleted: false,
-    createdAt: {
-      [Op.between]: [currentMonth.start, currentMonth.end],
-    },
-  },
-}) || 0;
+    // previous month revenue
+    const prevRevenue =
+      (await Payment.sum("amount", {
+        where: {
+          paymentStatus: "SUCCESS",
+          isDeleted: false,
+          createdAt: {
+            [Op.between]: [prevMonth.start, prevMonth.end],
+          },
+        },
+      })) || 0;
 
-// previous month revenue
-const prevRevenue = await Payment.sum("amount", {
-  where: {
-    paymentStatus: "SUCCESS",
-    isDeleted: false,
-    createdAt: {
-      [Op.between]: [prevMonth.start, prevMonth.end],
-    },
-  },
-}) || 0;
-
-const revenueGrowthPercent = getPercentageChange(
-  currentRevenue,
-  prevRevenue
-);
+    const revenueGrowthPercent = getPercentageChange(
+      currentRevenue,
+      prevRevenue,
+    );
 
     // ================= RESPONSE =================
     return res.json({

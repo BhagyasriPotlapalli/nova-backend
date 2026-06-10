@@ -7,7 +7,8 @@ import {
   verifyUser,
   getUserById,
   updateUser,
-  getDashboardStatus
+  getDashboardStatus,
+  confirmForgotPassword
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -17,6 +18,7 @@ const router = express.Router();
 router.post("/register", register);
 router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
+router.post("/confirm-forgot-password", confirmForgotPassword);
 router.post("/verify", verifyUser);
 
 // Protected route
