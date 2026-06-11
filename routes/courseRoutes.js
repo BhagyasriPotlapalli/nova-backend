@@ -17,6 +17,12 @@ const uploadTopicFiles = upload.fields([
 
 // Public routes
 router.post("/register",protect,uploadTopicFiles, courseController.createMaster);
+router.put(
+  "/question/:questionId",
+  protect,
+  upload.single("image"),
+  courseController.uploadQuestionImage
+);
 router.get("/allCategories",protect, courseController.getAllCategories);
 router.get("/categories", courseController.getAllCategories);
 router.put("/master/:type/:id", uploadTopicFiles,courseController.updateMaster);

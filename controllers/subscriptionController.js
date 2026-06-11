@@ -2,6 +2,7 @@ import crypto from "crypto";
 import db from "../models/index.js";
 import { catchAsync } from "../utils/catchAsync.js";
 import { razorpay } from "../utils/razorpayService.js";
+import { sendEmail } from "../utils/sendEmailFun.js";
 
 const Plan = db.Plan;
 const Course = db.Course;
@@ -125,6 +126,73 @@ export const createOrder = catchAsync(async (req, res) => {
    VERIFY PAYMENT
 ===================================================== */
 
+// export const verifyPayment = catchAsync(async (req, res) => {
+//   const {
+//     razorpay_order_id,
+//     razorpay_payment_id,
+//     razorpay_signature,
+//     subscriptionId,
+//     selectedCourses = [],
+//   } = req.body;
+
+//   const userId = req.user.id;
+
+//   const generated = crypto
+//     .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+//     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+//     .digest("hex");
+
+//   if (generated !== razorpay_signature) {
+//     return res.status(400).json({ message: "Invalid signature" });
+//   }
+
+//   const subscription = await Subscription.findOne({
+//     where: { id: subscriptionId, userId },
+//     include: [{ model: Plan, as: "plan" }],
+//   });
+
+//   if (!subscription) {
+//     return res.status(404).json({ message: "Subscription not found" });
+//   }
+
+//   const startDate = new Date();
+//   const endDate = new Date();
+
+//   if (subscription.planType === "YEARLY") {
+//     endDate.setFullYear(endDate.getFullYear() + 1);
+//   } else {
+//     endDate.setMonth(endDate.getMonth() + 1);
+//   }
+
+//   await subscription.update({
+//     razorpayPaymentId: razorpay_payment_id,
+//     razorpaySignature: razorpay_signature,
+//     status: "ACTIVE",
+//     startDate,
+//     endDate,
+//   });
+
+//   // if (!subscription.plan.isUnlimited) {
+//     for (const courseId of selectedCourses) {
+//       await SubscriptionCourse.create({
+//         subscriptionId,
+//         userId,
+//         courseId,
+//       });
+//     }
+//   // }
+
+//   await Payment.update(
+//     {
+//       razorpayPaymentId: razorpay_payment_id,
+//       paymentStatus: "SUCCESS",
+//     },
+//     { where: { subscriptionId } }
+//   );
+
+//   res.json({ success: true, message: "Payment verified" });
+// });
+
 export const verifyPayment = catchAsync(async (req, res) => {
   const {
     razorpay_order_id,
@@ -142,16 +210,30 @@ export const verifyPayment = catchAsync(async (req, res) => {
     .digest("hex");
 
   if (generated !== razorpay_signature) {
-    return res.status(400).json({ message: "Invalid signature" });
+    return res.status(400).json({
+      success: false,
+      message: "Invalid signature",
+    });
   }
 
   const subscription = await Subscription.findOne({
-    where: { id: subscriptionId, userId },
-    include: [{ model: Plan, as: "plan" }],
+    where: {
+      id: subscriptionId,
+      userId,
+    },
+    include: [
+      {
+        model: Plan,
+        as: "plan",
+      },
+    ],
   });
 
   if (!subscription) {
-    return res.status(404).json({ message: "Subscription not found" });
+    return res.status(404).json({
+      success: false,
+      message: "Subscription not found",
+    });
   }
 
   const startDate = new Date();
@@ -171,27 +253,130 @@ export const verifyPayment = catchAsync(async (req, res) => {
     endDate,
   });
 
-  // if (!subscription.plan.isUnlimited) {
-    for (const courseId of selectedCourses) {
-      await SubscriptionCourse.create({
-        subscriptionId,
-        userId,
-        courseId,
-      });
-    }
-  // }
+  // =====================================
+  // ASSIGN COURSES
+  // =====================================
+
+  for (const courseId of selectedCourses) {
+    await SubscriptionCourse.create({
+      subscriptionId,
+      userId,
+      courseId,
+    });
+  }
+
+  // =====================================
+  // UPDATE PAYMENT
+  // =====================================
 
   await Payment.update(
     {
       razorpayPaymentId: razorpay_payment_id,
       paymentStatus: "SUCCESS",
     },
-    { where: { subscriptionId } }
+    {
+      where: {
+        subscriptionId,
+      },
+    }
   );
 
-  res.json({ success: true, message: "Payment verified" });
-});
+  // =====================================
+  // SEND EMAIL
+  // =====================================
 
+  try {
+    const user = await User.findByPk(userId);
+
+    if (user?.email) {
+      await sendEmail({
+        to: user.email,
+
+        subject: "Subscription Activated Successfully",
+
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto;">
+
+            <h2 style="color:#1e88e5;">
+              Subscription Activated Successfully
+            </h2>
+
+            <p>Hello ${user.name || "User"},</p>
+
+            <p>
+              Thank you for your payment.
+              Your subscription has been activated successfully.
+            </p>
+
+            <table
+              style="border-collapse: collapse; width:100%;"
+              border="1"
+              cellpadding="10"
+            >
+              <tr>
+                <td><strong>Plan</strong></td>
+                <td>${
+                  subscription.plan?.name ||
+                  subscription.planType
+                }</td>
+              </tr>
+
+              <tr>
+                <td><strong>Plan Type</strong></td>
+                <td>${subscription.planType}</td>
+              </tr>
+
+              <tr>
+                <td><strong>Start Date</strong></td>
+                <td>${startDate.toLocaleDateString()}</td>
+              </tr>
+
+              <tr>
+                <td><strong>End Date</strong></td>
+                <td>${endDate.toLocaleDateString()}</td>
+              </tr>
+
+              <tr>
+                <td><strong>Payment ID</strong></td>
+                <td>${razorpay_payment_id}</td>
+              </tr>
+            </table>
+
+            <br/>
+
+            <p>
+              You can now access your subscribed courses.
+            </p>
+
+            <p>
+              Regards,<br/>
+              Nova8Labs Team
+            </p>
+
+          </div>
+        `,
+      });
+
+      console.log(
+        `Subscription email sent to ${user.email}`
+      );
+    }
+  } catch (emailError) {
+    console.error(
+      "Failed to send subscription email:",
+      emailError
+    );
+  }
+
+  // =====================================
+  // RESPONSE
+  // =====================================
+
+  res.status(200).json({
+    success: true,
+    message: "Payment verified successfully",
+  });
+});
 /* =====================================================
    SUBSCRIPTIONS (ADMIN APIs)
 ===================================================== */

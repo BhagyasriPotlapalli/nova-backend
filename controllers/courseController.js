@@ -644,6 +644,41 @@ export const createMaster = catchAsync(async (req, res) => {
   });
 
 });
+export const uploadQuestionImage = catchAsync(async (req, res) => {
+  const { questionId } = req.params;
+
+  const question = await Question.findByPk(questionId);
+
+  if (!question) {
+    return res.status(404).json({
+      success: false,
+      message: "Question not found",
+    });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: "Image file is required",
+    });
+  }
+
+  // Upload image to Bunny
+  const uploadedImage = await uploadToBunny(
+    req.file,
+    "questions/images"
+  );
+
+  await question.update({
+    question: uploadedImage.filePath
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Question image uploaded successfully",
+    data: question,
+  });
+});
 export const getAllCategories = catchAsync(async (req, res) => {
 
   const categories = await Category.findAll({

@@ -8,7 +8,8 @@ import {
   getUserById,
   updateUser,
   getDashboardStatus,
-  confirmForgotPassword
+  confirmForgotPassword,
+  getUsers
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -25,7 +26,9 @@ router.post("/verify", verifyUser);
 router.post("/change-password", protect, changePassword);
 
 router.get("/dashBorad",protect, getDashboardStatus);
+router.get("/users", getUsers);
 router.get("/user/:id", getUserById);
+
 
 router.put("/edit/:id", updateUser);
 
